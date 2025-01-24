@@ -11,6 +11,7 @@ Thermostat::Thermostat(Adafruit_SSD1306 *disp)
 	settings_ptr(nullptr),
 	pinPlus(33),
 	pinMinus(32),
+	resetPin(25),
 	thermostat_connected(false),
 	screen_shutoff_timer_start(0),
 	screen_on(true),
@@ -35,6 +36,10 @@ int Thermostat::get_pinPlus() const{
 
 int Thermostat::get_pinMinus() const{
 	return pinMinus;
+}
+
+int Thermostat::get_resetPin() const{
+	return resetPin;
 }
 
 int Thermostat::get_max_temp() const {
@@ -84,19 +89,24 @@ void Thermostat::set_thermostat_connection_status(bool set){
 
 
 
-// need to call get_setting to pass to here
-void Thermostat::set_settings_ptr(int setting){
-	if (this->settings_ptr != nullptr)
-	{
-		delete [] this->settings_ptr;
-		settings_ptr = nullptr;
-	}
-		
-	char* setting_arr = new char[5];
-	String temp = String(setting);
-	strcpy(setting_arr,temp.c_str());
-	this->settings_ptr = setting_arr;
+
+void Thermostat::set_settings_ptr(int setting) {
+    // Free old memory if necessary
+    if (this->settings_ptr != nullptr) {
+        delete[] this->settings_ptr;
+        this->settings_ptr = nullptr;
+    }
+
+    // Allocate new memory for settings_ptr
+    this->settings_ptr = new char[4]; 
+
+    // Convert int to string and copy to settings_ptr
+    String temp = String(setting);
+    strcpy(this->settings_ptr, temp.c_str());
+    Serial.printf("Settings ptr: %s\n", this->settings_ptr);
 }
+
+
 
 
 
@@ -104,7 +114,7 @@ void Thermostat::set_settings_ptr(int setting){
 //need to finish this to update display;
 void Thermostat::adjust_setting(Adafruit_BME280& sensor,int setting, bool deviceConnected){
 	unsigned long startMillis = millis();
-	const unsigned long period = 5000;
+	const unsigned long period = 15000;
 	while ((millis() - startMillis) <= period)
 	{
 		if (digitalRead(this->pinPlus) == LOW)
@@ -124,21 +134,35 @@ void Thermostat::adjust_setting(Adafruit_BME280& sensor,int setting, bool device
 	}
 }
 
-void Thermostat::writeFile(fs::FS &fs) { //pass in SPIFFS 
-  Serial.printf("Writing file: %s\r\n", this->temperature_settings_file);
 
-  File file = fs.open(this->temperature_settings_file, FILE_WRITE);
-  if (!file) {
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-  if (file.print(settings_ptr)) {
-    Serial.println("- file written");
-  } else {
-    Serial.println("- write failed");
-  }
-  file.close();
+
+void Thermostat::writeFile(fs::FS &fs) {
+    Serial.printf("Writing file: %s\r\n", this->temperature_settings_file);
+
+    // Ensure settings_ptr is valid
+    if (this->settings_ptr == nullptr) {
+        Serial.println("- settings_ptr is null, nothing to write");
+        return;
+    }
+
+    // Open the file for writing
+    File file = fs.open(this->temperature_settings_file, FILE_WRITE);
+    if (!file) {
+        Serial.println("- failed to open file for writing");
+        return;
+    }
+
+    // Write settings_ptr to the file
+    if (file.print(this->settings_ptr)) {
+        Serial.println("- file written successfully");
+    } else {
+        Serial.println("- write failed");
+    }
+
+    // Close the file
+    file.close();
 }
+
 
 
 void Thermostat::write_default_setting_to_file(fs::FS &fs) { //pass in SPIFFS 
@@ -258,13 +282,24 @@ void Thermostat::disconnected_display(){
 	display->setTextColor(SSD1306_WHITE);
   	display->setTextSize(1);
   	display->setCursor(5,0);
-  	display->print("Bluetooth");
-  	display->setCursor(5,10);
-  	display->print("Disconnected");
+  	display->print("Disconnected!!");
+  	display->setCursor(15,10);
+  	display->print("RESET BOTH");
   	display->setCursor(15,20);
-  	display->print("RESET NEEDED");
+  	display->print("DEVICES");
   	display->display();
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

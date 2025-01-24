@@ -15,6 +15,7 @@ class Thermostat{
 	char* settings_ptr;
 	int pinPlus;
 	int pinMinus;
+	int resetPin;
 	float current_temp;
 	bool thermostat_connected;
 	unsigned long screen_shutoff_timer_start;
@@ -28,6 +29,7 @@ class Thermostat{
 	const char* get_temp_filepath() const;
 	int get_pinMinus() const;
 	int get_pinPlus() const;
+	int get_resetPin() const;
 	int get_max_temp() const;
 	int get_min_temp() const;
 	int get_default_setting() const;
